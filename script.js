@@ -165,7 +165,7 @@ function normalizePitcherStats(pitching) {
   return { stat1: w, stat2: era, stat3: so, labels: ['W', 'ERA', 'K'] };
 }
 
-const PITCHER_POSITIONS = new Set(['SP', 'RP', 'CP']);
+const PITCHER_POSITIONS = new Set(['P', 'SP', 'RP', 'CP']);
 
 async function fetchPlayerStats(playerId) {
   try {
@@ -309,6 +309,7 @@ async function loadPlayerData() {
   );
 
   enrichedPlayers = playerSubset.map((p, i) => {
+    // Returns null if this player should be excluded (see mismatch guard below)
     const apiData = results[i].status === 'fulfilled' ? results[i].value : null;
 
     // ── Identity: API is the canonical source ────────────────────────
@@ -321,13 +322,17 @@ async function loadPlayerData() {
     const name     = apiIdentity?.name     ?? p.name;
     const position = apiIdentity?.position ?? p.position;
 
-    // Warn on material name divergence (helps surface stale seed entries)
+    // Guard: if the API resolved a different player than the seed intended,
+    // exclude the player entirely. This prevents bad or stale seed IDs from
+    // surfacing as cards with wrong names, fabricated stats, and no headshot.
+    // (Seed fallback is still allowed when apiData is null — API failure only.)
     if (apiIdentity?.name && p.name) {
       const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
       if (normalize(apiIdentity.name) !== normalize(p.name)) {
         console.warn(
-          `Player seed mismatch: seed='${p.name}' api='${apiIdentity.name}' id=${p.id}`
+          `Player excluded — seed/API mismatch: seed='${p.name}' api='${apiIdentity.name}' id=${p.id}`
         );
+        return null;
       }
     }
 
@@ -384,7 +389,7 @@ async function loadPlayerData() {
       tier:     p.tier,
       stats,
     };
-  });
+  }).filter(Boolean);  // remove any players excluded by the mismatch guard
 
   dataReady = true;
   showLoading(false);
