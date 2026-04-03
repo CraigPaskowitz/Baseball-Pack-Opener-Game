@@ -622,7 +622,7 @@ function renderCard(card, { mini = false, revealing = false } = {}) {
       </div>
     </div>
     <div class="card__footer">
-      <span class="card__series-tag" title="Stats from 2024 season · Photo is current">2024 Stats</span>
+      <span class="card__series-tag" title="Stats from 2024 season · Photo reflects most recent team">2024 Stats</span>
       <span class="card__id">#${card.id.slice(-6).toUpperCase()}</span>
     </div>
   `;
