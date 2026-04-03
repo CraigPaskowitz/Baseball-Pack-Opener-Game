@@ -170,7 +170,7 @@ const PITCHER_POSITIONS = new Set(['SP', 'RP', 'CP']);
 async function fetchPlayerStats(playerId) {
   try {
     const res = await fetch(
-      `${CONFIG.MLB_STATS_API}/people/${playerId}?hydrate=stats(group=[hitting,pitching],type=yearByYear,season=2024)`,
+      `${CONFIG.MLB_STATS_API}/people/${playerId}?hydrate=currentTeam,stats(group=[hitting,pitching],type=yearByYear,season=2024)`,
       { signal: AbortSignal.timeout(6000) }
     );
     if (!res.ok) return null;
@@ -188,7 +188,20 @@ async function fetchPlayerStats(playerId) {
     const lastH = hSplits.filter(s => s.season === '2024').pop()?.stat;
     const lastP = pSplits.filter(s => s.season === '2024').pop()?.stat;
 
-    return { hitting: lastH ?? null, pitching: lastP ?? null };
+    // Extract canonical identity from the API response
+    const apiName     = person.fullName ?? null;
+    const apiPosition = person.primaryPosition?.abbreviation ?? null;
+    const apiTeamName = person.currentTeam?.name ?? null;
+    // currentTeam.abbreviation is not always present; derive from clubName as fallback
+    const apiTeamAbbr = person.currentTeam?.abbreviation
+                     ?? person.currentTeam?.clubName?.toUpperCase().slice(0, 3)
+                     ?? null;
+
+    return {
+      hitting:  lastH ?? null,
+      pitching: lastP ?? null,
+      identity: { name: apiName, position: apiPosition, teamName: apiTeamName, teamAbbr: apiTeamAbbr },
+    };
   } catch {
     return null;
   }
@@ -211,29 +224,49 @@ async function loadPlayerData() {
 
   enrichedPlayers = playerSubset.map((p, i) => {
     const apiData = results[i].status === 'fulfilled' ? results[i].value : null;
-    let stats;
 
+    // ── Identity: prefer API truth over seed metadata ─────────────────
+    // API is the canonical source. Seed name/team/position are fallbacks only.
+    const apiIdentity = apiData?.identity;
+    const name      = apiIdentity?.name     ?? p.name;
+    const teamName  = apiIdentity?.teamName ?? p.teamName;
+    const teamAbbr  = apiIdentity?.teamAbbr ?? p.teamAbbr;
+    const position  = apiIdentity?.position ?? p.position;
+
+    // Warn on material name divergence (helps identify stale seed entries)
+    if (apiIdentity?.name && p.name) {
+      const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
+      if (normalize(apiIdentity.name) !== normalize(p.name)) {
+        console.warn(
+          `Player seed mismatch: seed='${p.name}' api='${apiIdentity.name}' id=${p.id}`
+        );
+      }
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────────
+    let stats;
     if (apiData) {
-      const isPitcher = PITCHER_POSITIONS.has(p.position);
+      // Use API-resolved position for pitcher detection (more reliable than seed)
+      const isPitcher = PITCHER_POSITIONS.has(position);
       if (isPitcher && apiData.pitching) {
         stats = normalizePitcherStats(apiData.pitching);
       } else if (!isPitcher && apiData.hitting) {
         stats = normalizeHitterStats(apiData.hitting);
       } else {
-        stats = getFallbackStats(p);
+        stats = getFallbackStats({ ...p, position });
       }
     } else {
       stats = getFallbackStats(p);
     }
 
     return {
-      id:        p.id,
-      name:      p.name,
-      teamName:  p.teamName,
-      teamAbbr:  p.teamAbbr,
-      position:  p.position,
-      image:     buildHeadshotUrl(p.id),
-      tier:      p.tier,
+      id:       p.id,
+      name,
+      teamName,
+      teamAbbr,
+      position,
+      image:    buildHeadshotUrl(p.id),
+      tier:     p.tier,
       stats,
     };
   });
