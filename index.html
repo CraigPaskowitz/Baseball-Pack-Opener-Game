@@ -171,6 +171,21 @@
   <div class="toast hidden" id="toast" role="alert" aria-live="assertive"></div>
 
 
+  <!-- ═══════════════════════════════════════════
+       ONBOARDING TOOLTIP
+       Single reusable node — positioned by JS.
+       Hidden by default; shown only for new users.
+  ═══════════════════════════════════════════ -->
+  <div class="ob-tooltip hidden" id="ob-tooltip" role="tooltip" aria-live="polite">
+    <div class="ob-tooltip__arrow" id="ob-arrow"></div>
+    <p class="ob-tooltip__text" id="ob-text"></p>
+    <div class="ob-tooltip__actions">
+      <button class="ob-btn ob-btn--skip" id="ob-skip">Skip</button>
+      <button class="ob-btn ob-btn--next" id="ob-next">Got it</button>
+    </div>
+  </div>
+
+
   <script src="script.js"></script>
 </body>
 </html>

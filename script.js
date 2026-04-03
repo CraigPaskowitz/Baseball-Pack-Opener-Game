@@ -585,16 +585,22 @@ function transitionTo(phase) {
 
   if (phase === 'hero') {
     document.getElementById('hero').classList.remove('hidden');
+    // Onboarding step 1 — shown after returning to hero (step 5 collection is also here)
+    setTimeout(() => OB.show('hero'), 200);
   } else if (phase === 'sealed') {
     document.getElementById('pack-opening').classList.remove('hidden');
     document.getElementById('phase-sealed').classList.remove('hidden');
     document.getElementById('opening-pack').classList.remove('pack-visual--tearing');
+    // Onboarding step 2
+    setTimeout(() => OB.show('sealed'), 200);
   } else if (phase === 'reveal') {
     document.getElementById('pack-opening').classList.remove('hidden');
     document.getElementById('phase-reveal').classList.remove('hidden');
   } else if (phase === 'summary') {
     document.getElementById('pack-opening').classList.remove('hidden');
     document.getElementById('phase-summary').classList.remove('hidden');
+    // Onboarding step 4 — slight extra delay so summary grid has started rendering
+    setTimeout(() => OB.show('summary'), 400);
   } else if (phase === 'collection') {
     document.getElementById('collection').classList.remove('hidden');
   }
@@ -706,12 +712,25 @@ function showRevealCard(index) {
       cardEl.classList.add(index === 0 ? 'card--revealing-first' : 'card--revealing');
     });
 
+    // Onboarding step 3 — show once first card has landed
+    if (index === 0) setTimeout(() => OB.show('reveal'), 550);
+
     // Card impact effect — brief shadow burst shortly after landing
     const revealDuration = index === 0 ? 500 : 325; // ~halfway through reveal
     setTimeout(() => {
       cardEl.classList.add('card--impact');
       setTimeout(() => cardEl.classList.remove('card--impact'), 560);
     }, revealDuration);
+
+    // Rarity afterglow — trailing glow fades off card after it has landed
+    if (card.rarity !== 'common') {
+      const afterglowDelay = revealDuration + 560; // fires after impact clears
+      setTimeout(() => {
+        cardEl.classList.add(`card--afterglow-${card.rarity}`);
+        const glowDuration = card.rarity === 'legendary' ? 400 : 350;
+        setTimeout(() => cardEl.classList.remove(`card--afterglow-${card.rarity}`), glowDuration);
+      }, afterglowDelay);
+    }
   }, renderDelay);
 
   // Update button label
@@ -1007,7 +1026,191 @@ function shuffleArray(arr) {
 
 
 /* ═══════════════════════════════════════════════════════
-   11. INITIALIZATION
+   11. ONBOARDING
+   Lightweight first-time-user tooltip system.
+   Single tooltip DOM node, repositioned per step.
+   Stored under localStorage key: lbc_seen_onboarding_v1
+   ═══════════════════════════════════════════════════════ */
+
+const ONBOARDING_KEY = 'lbc_seen_onboarding_v1';
+
+const ONBOARDING_STEPS = [
+  {
+    id:        'hero',
+    anchorId:  'open-pack-btn',
+    text:      'Start here — open a pack to pull real player cards.',
+    showSkip:  true,
+  },
+  {
+    id:        'sealed',
+    anchorId:  'opening-pack',
+    text:      'Tap the pack to tear it open.',
+    showSkip:  false,
+  },
+  {
+    id:        'reveal',
+    anchorId:  'card-stage',
+    text:      'Cards reveal one at a time. Watch the colors — they signal rarity.',
+    showSkip:  false,
+  },
+  {
+    id:        'summary',
+    anchorId:  'summary-grid',
+    text:      "This is your pack. The best card is highlighted.",
+    showSkip:  false,
+  },
+  {
+    id:        'collection',
+    anchorId:  'see-collection-btn',
+    text:      'All your cards are saved here.',
+    showSkip:  false,
+  },
+];
+
+const OB = {
+  active:       false,
+  stepIndex:    0,
+  dismissTimer: null,
+
+  /** Has this user already completed onboarding? */
+  isDone() {
+    try { return !!localStorage.getItem(ONBOARDING_KEY); } catch { return true; }
+  },
+
+  /** Mark onboarding complete and hide tooltip. */
+  complete() {
+    try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch {}
+    this.active = false;
+    this._hide();
+  },
+
+  /** Show the tooltip for a given step id (e.g. 'hero', 'sealed', …).
+   *  Silently no-ops if onboarding is done or step has already passed. */
+  show(stepId) {
+    if (this.isDone() || !this.active) return;
+    const idx = ONBOARDING_STEPS.findIndex(s => s.id === stepId);
+    if (idx < 0 || idx !== this.stepIndex) return;
+    clearTimeout(this.dismissTimer);
+    this.dismissTimer = setTimeout(() => this._render(idx), 200);
+  },
+
+  /** Called by Next / Got it button. */
+  advance() {
+    this.stepIndex += 1;
+    if (this.stepIndex >= ONBOARDING_STEPS.length) {
+      this.complete();
+    } else {
+      this._hide();
+      // Step 5 (collection) anchors to see-collection-btn which is in the summary DOM.
+      // Trigger it directly after a short delay rather than waiting for a phase change.
+      const nextStep = ONBOARDING_STEPS[this.stepIndex];
+      if (nextStep && document.getElementById(nextStep.anchorId)) {
+        clearTimeout(this.dismissTimer);
+        this.dismissTimer = setTimeout(() => this._render(this.stepIndex), 250);
+      }
+      // Otherwise the next phase transition will call OB.show() with the right stepId.
+    }
+  },
+
+  /** Internal: render and position the tooltip for step[idx]. */
+  _render(idx) {
+    const step    = ONBOARDING_STEPS[idx];
+    const anchor  = document.getElementById(step.anchorId);
+    const tooltip = document.getElementById('ob-tooltip');
+    if (!anchor || !tooltip) return;
+
+    // Populate content
+    document.getElementById('ob-text').textContent = step.text;
+    tooltip.classList.toggle('ob-tooltip--hide-skip', !step.showSkip);
+
+    // Reset visibility classes before measuring
+    tooltip.classList.remove('ob-tooltip--visible', 'ob-tooltip--above', 'ob-tooltip--below', 'hidden');
+    tooltip.style.left = '-9999px';
+    tooltip.style.top  = '-9999px';
+
+    // Force layout so we can measure tooltip dimensions
+    const ttW  = tooltip.offsetWidth;
+    const ttH  = tooltip.offsetHeight;
+    const rect = anchor.getBoundingClientRect();
+    const vw   = window.innerWidth;
+    const vh   = window.innerHeight;
+    const GAP  = 12; // px gap between arrow and anchor
+
+    // Decide: place above or below anchor?
+    const spaceBelow = vh - rect.bottom;
+    const placeBelow = spaceBelow >= ttH + GAP + 10;
+    let top;
+    if (placeBelow) {
+      top = rect.bottom + GAP;
+      tooltip.classList.add('ob-tooltip--below');
+    } else {
+      top = rect.top - ttH - GAP;
+      tooltip.classList.add('ob-tooltip--above');
+    }
+
+    // Horizontal: center over anchor, clamped to viewport
+    const MARGIN = 10;
+    let left = rect.left + rect.width / 2 - ttW / 2;
+    left = Math.max(MARGIN, Math.min(left, vw - ttW - MARGIN));
+
+    // Position arrow horizontally relative to tooltip box
+    const arrowEl   = document.getElementById('ob-arrow');
+    const anchorCx  = rect.left + rect.width / 2;
+    const arrowLeft = Math.max(16, Math.min(anchorCx - left, ttW - 16));
+    arrowEl.style.left = `${arrowLeft}px`;
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top  = `${Math.max(MARGIN, top)}px`;
+
+    // Fade in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => tooltip.classList.add('ob-tooltip--visible'));
+    });
+  },
+
+  /** Internal: fade out and fully hide. */
+  _hide() {
+    const tooltip = document.getElementById('ob-tooltip');
+    if (!tooltip) return;
+    tooltip.classList.remove('ob-tooltip--visible');
+    setTimeout(() => {
+      tooltip.classList.add('hidden');
+      tooltip.classList.remove('ob-tooltip--above', 'ob-tooltip--below');
+    }, 220);
+  },
+
+  /** Boot — initializes if not already done. Call from boot(). */
+  init() {
+    if (this.isDone()) return;
+    this.active    = true;
+    this.stepIndex = 0;
+
+    const next = document.getElementById('ob-next');
+    const skip = document.getElementById('ob-skip');
+
+    next.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.advance();
+    });
+    skip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.complete();
+    });
+
+    // Tap outside tooltip to advance (not dismiss entirely)
+    document.addEventListener('click', (e) => {
+      if (!this.active) return;
+      const tooltip = document.getElementById('ob-tooltip');
+      if (tooltip && !tooltip.classList.contains('hidden') && !tooltip.contains(e.target)) {
+        this.advance();
+      }
+    }, true);
+  },
+};
+
+
+/* ═══════════════════════════════════════════════════════
+   12. INITIALIZATION
    Wire up all event listeners and boot the app.
    ═══════════════════════════════════════════════════════ */
 
@@ -1078,6 +1281,9 @@ function boot() {
   // Update collection count on hero
   const stored = loadCollection();
   updateHeroCollectionCount(stored.length);
+
+  // Initialize first-time onboarding (no-ops if already seen)
+  OB.init();
 
   // Wire up interactions
   initEventListeners();

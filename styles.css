@@ -1399,3 +1399,107 @@ img {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* ─── ONBOARDING TOOLTIPS ────────────────────────────── */
+
+.ob-tooltip {
+  position: fixed;
+  z-index: 200;
+  max-width: 240px;
+  width: max-content;
+  background: #1a2a44;
+  border: 1px solid rgba(45, 124, 246, 0.35);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 0 0 1px rgba(45, 124, 246, 0.12),
+    0 8px 28px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(45, 124, 246, 0.15);
+  padding: 12px 14px 10px;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ob-tooltip.ob-tooltip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ob-tooltip.hidden {
+  display: none;
+}
+
+/* Arrow — triangle pointing toward the target */
+.ob-tooltip__arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #1a2a44;
+  border-left: 1px solid rgba(45, 124, 246, 0.35);
+  border-top: 1px solid rgba(45, 124, 246, 0.35);
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Arrow pointing down (tooltip is above target) */
+.ob-tooltip--below .ob-tooltip__arrow {
+  top: -6px;
+  bottom: auto;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Arrow pointing up (tooltip is below target) */
+.ob-tooltip--above .ob-tooltip__arrow {
+  top: auto;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.ob-tooltip__text {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.ob-tooltip__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
+.ob-btn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.ob-btn:active { opacity: 0.75; }
+
+.ob-btn--skip {
+  color: var(--text-muted);
+  background: transparent;
+  padding-left: 2px;
+}
+
+.ob-btn--skip:hover { color: var(--text-secondary); }
+
+.ob-btn--next {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.ob-btn--next:hover { background: #4a8ff7; }
+
+/* Hide skip on all steps except first */
+.ob-tooltip--hide-skip #ob-skip {
+  display: none;
+}
