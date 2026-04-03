@@ -182,11 +182,17 @@ async function fetchPlayerStats(playerId) {
     const hitting  = statsGroups.find(g => g.group?.displayName === 'hitting');
     const pitching = statsGroups.find(g => g.group?.displayName === 'pitching');
 
-    // Grab most recent season's stats
+    // Grab most recent season's stats (and the team from that split)
     const hSplits = hitting?.splits ?? [];
     const pSplits = pitching?.splits ?? [];
-    const lastH = hSplits.filter(s => s.season === '2024').pop()?.stat;
-    const lastP = pSplits.filter(s => s.season === '2024').pop()?.stat;
+    const lastH = hSplits.filter(s => s.season === '2024').pop();
+    const lastP = pSplits.filter(s => s.season === '2024').pop();
+
+    // Extract team from the stats split itself — this is the most reliable
+    // source because it's tied to the exact stats we display on the card.
+    const statsSplit = lastH || lastP;
+    const statsTeamName = statsSplit?.team?.name ?? null;
+    const statsTeamAbbr = statsSplit?.team?.abbreviation ?? null;
 
     // Extract canonical identity from the API response
     const apiName     = person.fullName ?? null;
@@ -197,18 +203,20 @@ async function fetchPlayerStats(playerId) {
     // "API returned no team" from "API call failed entirely".
     const hasCurrentTeam = !!person.currentTeam;
     const apiTeamName = person.currentTeam?.name ?? null;
-    // Pass abbreviation as-is; derivation from full name happens in loadPlayerData
     const apiTeamAbbr = person.currentTeam?.abbreviation ?? null;
 
     return {
-      hitting:  lastH ?? null,
-      pitching: lastP ?? null,
+      hitting:  lastH?.stat ?? null,
+      pitching: lastP?.stat ?? null,
       identity: {
         name: apiName,
         position: apiPosition,
         teamName: apiTeamName,
         teamAbbr: apiTeamAbbr,
-        hasCurrentTeam,   // flag: API responded but currentTeam was absent
+        hasCurrentTeam,
+        // Stats-split team: guaranteed to match the stats shown on the card
+        statsTeamName,
+        statsTeamAbbr,
       },
     };
   } catch {
@@ -254,6 +262,37 @@ function deriveTeamAbbr(teamName) {
   return map[teamName] ?? '';
 }
 
+// Resolve team exclusively from API data. Never falls back to seed.
+// Returns { teamName, teamAbbr } — teamAbbr is always a usable string.
+function resolveTeamFromApi(identity) {
+  // Source 1: Stats-split team — directly tied to the stats on the card
+  if (identity.statsTeamAbbr) {
+    return {
+      teamName: identity.statsTeamName || '',
+      teamAbbr: identity.statsTeamAbbr,
+    };
+  }
+  if (identity.statsTeamName) {
+    const abbr = deriveTeamAbbr(identity.statsTeamName);
+    if (abbr) return { teamName: identity.statsTeamName, teamAbbr: abbr };
+  }
+
+  // Source 2: /people currentTeam
+  if (identity.hasCurrentTeam) {
+    const abbr = identity.teamAbbr
+              || deriveTeamAbbr(identity.teamName || '');
+    if (abbr) return { teamName: identity.teamName || '', teamAbbr: abbr };
+    // currentTeam existed but we couldn't resolve an abbreviation
+    if (identity.teamName) {
+      console.warn(`Could not derive abbr for team: '${identity.teamName}'`);
+      return { teamName: identity.teamName, teamAbbr: identity.teamName };
+    }
+  }
+
+  // No team from any API source — player is likely a free agent
+  return { teamName: '', teamAbbr: 'FA' };
+}
+
 // Build headshot URL from MLB CDN
 function buildHeadshotUrl(playerId) {
   return `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/${playerId}/headshot/67/current`;
@@ -292,38 +331,29 @@ async function loadPlayerData() {
       }
     }
 
-    // Team — three-tier resolution with explicit warnings:
-    //   1. API returned currentTeam → use it exclusively (no seed mixing)
-    //   2. API responded but currentTeam missing → seed fallback + warning
-    //   3. API call failed entirely (apiData null) → seed fallback silently
+    // Team — strict resolution: NEVER mix API-sourced stats/image with seed team.
+    //
+    // Priority (when API responded):
+    //   1. Stats-split team (matches the exact stats displayed on the card)
+    //   2. /people currentTeam (active roster team)
+    //   3. "FA" (free agent — honest about missing data)
+    //
+    // Seed team is ONLY used when the API call failed entirely (apiData null).
     let teamName, teamAbbr;
-    if (apiIdentity?.hasCurrentTeam) {
-      // API has authoritative team name — use it exclusively
-      teamName = apiIdentity.teamName;
+    if (apiIdentity) {
+      // API responded — resolve team from API sources ONLY, never seed
+      const resolved = resolveTeamFromApi(apiIdentity);
+      teamName = resolved.teamName;
+      teamAbbr = resolved.teamAbbr;
 
-      // abbreviation: prefer API value, then derive from full name, then seed, then ''
-      // MLB API frequently omits currentTeam.abbreviation even when name is present
-      teamAbbr = apiIdentity.teamAbbr
-              || (apiIdentity.teamName ? deriveTeamAbbr(apiIdentity.teamName) : '')
-              || p.teamAbbr
-              || '';
-
-      // Warn if seed abbreviation diverges from what we resolved
-      const resolvedAbbr = teamAbbr;
-      if (p.teamAbbr && resolvedAbbr && p.teamAbbr !== resolvedAbbr) {
+      // Warn if seed diverges (helps maintain seed list)
+      if (p.teamAbbr && teamAbbr && p.teamAbbr !== teamAbbr) {
         console.warn(
-          `Team mismatch id=${p.id} seed='${p.teamName}' (${p.teamAbbr}) api='${apiIdentity.teamName}' (${resolvedAbbr})`
+          `Team update: id=${p.id} seed='${p.teamAbbr}' → api='${teamAbbr}'`
         );
       }
-    } else if (apiIdentity && !apiIdentity.hasCurrentTeam) {
-      // API responded but player has no active currentTeam (FA, injured reserve, etc.)
-      console.warn(
-        `Missing currentTeam for ${name} (id=${p.id}), using seed fallback`
-      );
-      teamName = p.teamName || '';
-      teamAbbr = p.teamAbbr || '';
     } else {
-      // API call failed completely — use seed silently
+      // API call failed completely — seed is the only option
       teamName = p.teamName || '';
       teamAbbr = p.teamAbbr || '';
     }
