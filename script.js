@@ -191,16 +191,27 @@ async function fetchPlayerStats(playerId) {
     // Extract canonical identity from the API response
     const apiName     = person.fullName ?? null;
     const apiPosition = person.primaryPosition?.abbreviation ?? null;
-    const apiTeamName = person.currentTeam?.name ?? null;
-    // currentTeam.abbreviation is not always present; derive from clubName as fallback
-    const apiTeamAbbr = person.currentTeam?.abbreviation
-                     ?? person.currentTeam?.clubName?.toUpperCase().slice(0, 3)
-                     ?? null;
+
+    // currentTeam is only present when the player is on an active roster.
+    // Capture its presence explicitly so loadPlayerData can distinguish
+    // "API returned no team" from "API call failed entirely".
+    const hasCurrentTeam = !!person.currentTeam;
+    const apiTeamName    = person.currentTeam?.name ?? null;
+    // abbreviation is not always populated; derive from clubName as last resort
+    const apiTeamAbbr    = person.currentTeam?.abbreviation
+                        ?? person.currentTeam?.clubName?.toUpperCase().slice(0, 3)
+                        ?? null;
 
     return {
       hitting:  lastH ?? null,
       pitching: lastP ?? null,
-      identity: { name: apiName, position: apiPosition, teamName: apiTeamName, teamAbbr: apiTeamAbbr },
+      identity: {
+        name: apiName,
+        position: apiPosition,
+        teamName: apiTeamName,
+        teamAbbr: apiTeamAbbr,
+        hasCurrentTeam,   // flag: API responded but currentTeam was absent
+      },
     };
   } catch {
     return null;
@@ -225,15 +236,17 @@ async function loadPlayerData() {
   enrichedPlayers = playerSubset.map((p, i) => {
     const apiData = results[i].status === 'fulfilled' ? results[i].value : null;
 
-    // ── Identity: prefer API truth over seed metadata ─────────────────
-    // API is the canonical source. Seed name/team/position are fallbacks only.
-    const apiIdentity = apiData?.identity;
-    const name      = apiIdentity?.name     ?? p.name;
-    const teamName  = apiIdentity?.teamName ?? p.teamName;
-    const teamAbbr  = apiIdentity?.teamAbbr ?? p.teamAbbr;
-    const position  = apiIdentity?.position ?? p.position;
+    // ── Identity: API is the canonical source ────────────────────────
+    // Seed values for name/team/position are ONLY used when the API
+    // call failed entirely (apiData === null). When the API responds,
+    // we use its values exclusively — no mixing with seed data.
+    const apiIdentity = apiData?.identity ?? null;
 
-    // Warn on material name divergence (helps identify stale seed entries)
+    // Name & position — API wins; seed is the complete-failure fallback only
+    const name     = apiIdentity?.name     ?? p.name;
+    const position = apiIdentity?.position ?? p.position;
+
+    // Warn on material name divergence (helps surface stale seed entries)
     if (apiIdentity?.name && p.name) {
       const normalize = s => s.toLowerCase().replace(/[^a-z]/g, '');
       if (normalize(apiIdentity.name) !== normalize(p.name)) {
@@ -241,6 +254,35 @@ async function loadPlayerData() {
           `Player seed mismatch: seed='${p.name}' api='${apiIdentity.name}' id=${p.id}`
         );
       }
+    }
+
+    // Team — three-tier resolution with explicit warnings:
+    //   1. API returned currentTeam → use it exclusively (no seed mixing)
+    //   2. API responded but currentTeam missing → seed fallback + warning
+    //   3. API call failed entirely (apiData null) → seed fallback silently
+    let teamName, teamAbbr;
+    if (apiIdentity?.hasCurrentTeam) {
+      // API has authoritative team data — use it and never touch seed
+      teamName = apiIdentity.teamName;
+      teamAbbr = apiIdentity.teamAbbr;
+
+      // Warn if seed team label diverges from what the API returned
+      if (p.teamAbbr && apiIdentity.teamAbbr && p.teamAbbr !== apiIdentity.teamAbbr) {
+        console.warn(
+          `Team mismatch id=${p.id} seed='${p.teamName}' (${p.teamAbbr}) api='${apiIdentity.teamName}' (${apiIdentity.teamAbbr})`
+        );
+      }
+    } else if (apiIdentity && !apiIdentity.hasCurrentTeam) {
+      // API responded but player has no active currentTeam (FA, injured reserve, etc.)
+      console.warn(
+        `Missing currentTeam for ${name} (id=${p.id}), using seed fallback`
+      );
+      teamName = p.teamName;
+      teamAbbr = p.teamAbbr;
+    } else {
+      // API call failed completely — use seed silently
+      teamName = p.teamName;
+      teamAbbr = p.teamAbbr;
     }
 
     // ── Stats ─────────────────────────────────────────────────────────
