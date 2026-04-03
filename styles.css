@@ -989,10 +989,10 @@ img {
 /* Card image area */
 .card__image-area {
   position: relative;
-  height: 200px;
+  height: 210px;
   overflow: hidden;
   flex-shrink: 0;
-  background: rgba(0,0,0,0.3);
+  background: #0d1520;
 }
 
 .card__image-area::after {
@@ -1009,8 +1009,8 @@ img {
 .card__player-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 50% 15%;
+  object-fit: contain;
+  object-position: 50% 10%;
   filter: contrast(1.05) saturate(1.1);
   transition: transform var(--t-slow);
 }
