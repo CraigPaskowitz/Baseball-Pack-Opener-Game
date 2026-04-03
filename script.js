@@ -196,11 +196,9 @@ async function fetchPlayerStats(playerId) {
     // Capture its presence explicitly so loadPlayerData can distinguish
     // "API returned no team" from "API call failed entirely".
     const hasCurrentTeam = !!person.currentTeam;
-    const apiTeamName    = person.currentTeam?.name ?? null;
-    // abbreviation is not always populated; derive from clubName as last resort
-    const apiTeamAbbr    = person.currentTeam?.abbreviation
-                        ?? person.currentTeam?.clubName?.toUpperCase().slice(0, 3)
-                        ?? null;
+    const apiTeamName = person.currentTeam?.name ?? null;
+    // Pass abbreviation as-is; derivation from full name happens in loadPlayerData
+    const apiTeamAbbr = person.currentTeam?.abbreviation ?? null;
 
     return {
       hitting:  lastH ?? null,
@@ -216,6 +214,44 @@ async function fetchPlayerStats(playerId) {
   } catch {
     return null;
   }
+}
+
+// Derive a 2–3 letter team abbreviation from a full team name.
+// Used when the MLB API returns currentTeam.name but omits abbreviation.
+function deriveTeamAbbr(teamName) {
+  const map = {
+    'Arizona Diamondbacks':      'ARI',
+    'Atlanta Braves':            'ATL',
+    'Baltimore Orioles':         'BAL',
+    'Boston Red Sox':            'BOS',
+    'Chicago Cubs':              'CHC',
+    'Chicago White Sox':         'CWS',
+    'Cincinnati Reds':           'CIN',
+    'Cleveland Guardians':       'CLE',
+    'Colorado Rockies':          'COL',
+    'Detroit Tigers':            'DET',
+    'Houston Astros':            'HOU',
+    'Kansas City Royals':        'KC',
+    'Los Angeles Angels':        'LAA',
+    'Los Angeles Dodgers':       'LAD',
+    'Miami Marlins':             'MIA',
+    'Milwaukee Brewers':         'MIL',
+    'Minnesota Twins':           'MIN',
+    'New York Mets':             'NYM',
+    'New York Yankees':          'NYY',
+    'Oakland Athletics':         'OAK',
+    'Philadelphia Phillies':     'PHI',
+    'Pittsburgh Pirates':        'PIT',
+    'San Diego Padres':          'SD',
+    'San Francisco Giants':      'SF',
+    'Seattle Mariners':          'SEA',
+    'St. Louis Cardinals':       'STL',
+    'Tampa Bay Rays':            'TB',
+    'Texas Rangers':             'TEX',
+    'Toronto Blue Jays':         'TOR',
+    'Washington Nationals':      'WSH',
+  };
+  return map[teamName] ?? '';
 }
 
 // Build headshot URL from MLB CDN
@@ -262,14 +298,21 @@ async function loadPlayerData() {
     //   3. API call failed entirely (apiData null) → seed fallback silently
     let teamName, teamAbbr;
     if (apiIdentity?.hasCurrentTeam) {
-      // API has authoritative team data — use it and never touch seed
+      // API has authoritative team name — use it exclusively
       teamName = apiIdentity.teamName;
-      teamAbbr = apiIdentity.teamAbbr;
 
-      // Warn if seed team label diverges from what the API returned
-      if (p.teamAbbr && apiIdentity.teamAbbr && p.teamAbbr !== apiIdentity.teamAbbr) {
+      // abbreviation: prefer API value, then derive from full name, then seed, then ''
+      // MLB API frequently omits currentTeam.abbreviation even when name is present
+      teamAbbr = apiIdentity.teamAbbr
+              || (apiIdentity.teamName ? deriveTeamAbbr(apiIdentity.teamName) : '')
+              || p.teamAbbr
+              || '';
+
+      // Warn if seed abbreviation diverges from what we resolved
+      const resolvedAbbr = teamAbbr;
+      if (p.teamAbbr && resolvedAbbr && p.teamAbbr !== resolvedAbbr) {
         console.warn(
-          `Team mismatch id=${p.id} seed='${p.teamName}' (${p.teamAbbr}) api='${apiIdentity.teamName}' (${apiIdentity.teamAbbr})`
+          `Team mismatch id=${p.id} seed='${p.teamName}' (${p.teamAbbr}) api='${apiIdentity.teamName}' (${resolvedAbbr})`
         );
       }
     } else if (apiIdentity && !apiIdentity.hasCurrentTeam) {
@@ -277,12 +320,12 @@ async function loadPlayerData() {
       console.warn(
         `Missing currentTeam for ${name} (id=${p.id}), using seed fallback`
       );
-      teamName = p.teamName;
-      teamAbbr = p.teamAbbr;
+      teamName = p.teamName || '';
+      teamAbbr = p.teamAbbr || '';
     } else {
       // API call failed completely — use seed silently
-      teamName = p.teamName;
-      teamAbbr = p.teamAbbr;
+      teamName = p.teamName || '';
+      teamAbbr = p.teamAbbr || '';
     }
 
     // ── Stats ─────────────────────────────────────────────────────────
@@ -519,7 +562,14 @@ function renderCard(card, { mini = false, revealing = false } = {}) {
   el.innerHTML = `
     <div class="card__shimmer"></div>
     <div class="card__header">
-      <span class="card__team-tag">${esc(card.teamAbbr)} · ${esc(card.position)}</span>
+      <span class="card__team-tag">${(() => {
+        const team = (card.teamAbbr || '').trim();
+        const pos  = (card.position  || '').trim();
+        return team && pos ? `${esc(team)} · ${esc(pos)}`
+             : team        ? esc(team)
+             : pos         ? esc(pos)
+             :               '';
+      })()}</span>
       <span class="card__rarity-badge">${rarityLabel(card.rarity)}</span>
     </div>
     <div class="card__image-area">
