@@ -1,190 +1,209 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Live Baseball Cards — Pack Break</title>
-  <meta name="description" content="Open digital baseball card packs with real MLB player data. Pull rare, epic, and legendary cards." />
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Diamond Pulls — Baseball Card Pack Break</title>
+  <meta name="description" content="Open digital baseball card packs with real MLB player data. Pull rare, epic, and legendary cards.">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════
-       HERO / LANDING SCREEN
-  ═══════════════════════════════════════════ -->
-  <section id="hero" class="hero" aria-label="Landing">
-    <div class="hero__bg">
-      <div class="hero__stadium-lights"></div>
-      <div class="hero__grid-lines"></div>
+  <!-- ══════════════════════════════════════
+       HERO / LANDING
+  ══════════════════════════════════════ -->
+  <section id="hero" class="screen hero active">
+    <div class="hero-bg">
+      <div class="hero-lights"></div>
+      <div class="hero-diamond"></div>
     </div>
-
-    <div class="hero__content">
-      <div class="hero__badge">⚾ MLB · SEASON 2025</div>
-      <h1 class="hero__title">
-        <span class="hero__title-top">LIVE</span>
-        <span class="hero__title-main">BASEBALL<br>CARDS</span>
-        <span class="hero__title-sub">PACK BREAK</span>
+    <div class="hero-content">
+      <div class="hero-badge">MLB 2025 SEASON</div>
+      <h1 class="hero-title">
+        <span class="hero-title-top">DIAMOND</span>
+        <span class="hero-title-main">PULLS</span>
       </h1>
-      <p class="hero__tagline">Pull real players. Chase legendary cards.<br>Your collection, one pack at a time.</p>
+      <p class="hero-tagline">Open packs. Pull legends. Build your collection.</p>
 
-      <div class="hero__pack-preview" aria-hidden="true">
-        <div class="pack-visual pack-visual--idle" id="hero-pack">
-          <div class="pack-visual__shine"></div>
-          <div class="pack-visual__label">
-            <span class="pack-visual__label-top">PACK BREAK</span>
-            <span class="pack-visual__label-series">2025 SERIES</span>
-            <span class="pack-visual__label-count">5 CARDS</span>
-          </div>
-          <div class="pack-visual__bottom-stripe"></div>
-        </div>
+      <div class="pack-types" id="pack-types">
+        <button class="pack-option selected" data-pack="standard">
+          <div class="pack-option-icon">📦</div>
+          <div class="pack-option-name">Standard</div>
+          <div class="pack-option-desc">5 cards</div>
+        </button>
+        <button class="pack-option" data-pack="premium">
+          <div class="pack-option-icon">💎</div>
+          <div class="pack-option-name">Premium</div>
+          <div class="pack-option-desc">5 cards · better odds</div>
+        </button>
+        <button class="pack-option" data-pack="legendary">
+          <div class="pack-option-icon">🏆</div>
+          <div class="pack-option-name">Legendary</div>
+          <div class="pack-option-desc">3 cards · elite only</div>
+        </button>
       </div>
 
-      <button class="btn btn--primary btn--xl" id="open-pack-btn">
-        <span class="btn__text">Open Pack</span>
-        <span class="btn__sparkle" aria-hidden="true">✦</span>
+      <button class="btn btn-primary btn-xl" id="open-pack-btn">
+        <span class="btn-text">Rip Pack</span>
+        <span class="btn-sparkle">✦</span>
       </button>
 
-      <button class="btn btn--ghost btn--sm hero__collection-link" id="view-collection-btn">
-        View My Collection <span id="hero-collection-count" class="collection-badge" style="display:none"></span>
-      </button>
+      <div class="hero-nav">
+        <button class="btn btn-ghost" id="view-collection-btn">
+          My Collection <span class="badge hidden" id="collection-count"></span>
+        </button>
+        <button class="btn btn-ghost" id="view-stats-btn">
+          Pack Stats
+        </button>
+      </div>
     </div>
   </section>
 
 
-  <!-- ═══════════════════════════════════════════
-       PACK OPENING EXPERIENCE
-  ═══════════════════════════════════════════ -->
-  <section id="pack-opening" class="pack-opening hidden" aria-label="Pack Opening" aria-live="polite">
-    <div class="pack-opening__stage" id="opening-stage">
+  <!-- ══════════════════════════════════════
+       PACK OPENING
+  ══════════════════════════════════════ -->
+  <section id="pack-opening" class="screen pack-opening">
 
-      <!-- Stage 1: Sealed pack + tear prompt -->
-      <div class="opening-phase" id="phase-sealed" data-phase="sealed">
-        <div class="pack-tear-area">
-          <div class="pack-visual pack-visual--opening" id="opening-pack">
-            <div class="pack-visual__shine"></div>
-            <div class="pack-visual__rip-indicator" aria-hidden="true"></div>
-            <div class="pack-visual__label">
-              <span class="pack-visual__label-top">PACK BREAK</span>
-              <span class="pack-visual__label-series">2025 SERIES</span>
-              <span class="pack-visual__label-count">5 CARDS</span>
-            </div>
-            <div class="pack-visual__bottom-stripe"></div>
-          </div>
-          <p class="pack-tear-hint">Tap to tear open</p>
+    <!-- Phase 1: Sealed pack -->
+    <div class="phase phase-sealed" id="phase-sealed">
+      <div class="sealed-pack" id="sealed-pack">
+        <div class="sealed-pack-shine"></div>
+        <div class="sealed-pack-label">
+          <span class="sealed-pack-type" id="sealed-pack-type">STANDARD</span>
+          <span class="sealed-pack-series">2025 SERIES</span>
         </div>
+        <div class="sealed-pack-stripe"></div>
       </div>
+      <p class="tear-hint">Tap to rip open</p>
+    </div>
 
-      <!-- Stage 2: Card reveal -->
-      <div class="opening-phase hidden" id="phase-reveal" data-phase="reveal">
-        <div class="reveal-header">
-          <span class="reveal-counter" id="reveal-counter">Card 1 of 5</span>
-          <div class="reveal-dots" id="reveal-dots" aria-hidden="true">
-            <span class="reveal-dot" data-idx="0"></span>
-            <span class="reveal-dot" data-idx="1"></span>
-            <span class="reveal-dot" data-idx="2"></span>
-            <span class="reveal-dot" data-idx="3"></span>
-            <span class="reveal-dot" data-idx="4"></span>
-          </div>
-        </div>
-
-        <div class="card-stage" id="card-stage">
-          <!-- Card is injected here -->
-        </div>
-
-        <div class="reveal-actions">
-          <button class="btn btn--primary btn--lg" id="next-card-btn">
-            <span class="btn__text" id="next-card-label">Next Card</span>
-            <span class="btn__arrow" aria-hidden="true">→</span>
-          </button>
-        </div>
+    <!-- Phase 2: Card reveal -->
+    <div class="phase phase-reveal hidden" id="phase-reveal">
+      <div class="reveal-header">
+        <span class="reveal-counter" id="reveal-counter">Card 1 of 5</span>
+        <div class="reveal-pips" id="reveal-pips"></div>
       </div>
-
-      <!-- Stage 3: Pack summary -->
-      <div class="opening-phase hidden" id="phase-summary" data-phase="summary">
-        <div class="summary-header">
-          <h2 class="summary-title">Pack Complete!</h2>
-          <p class="summary-subtitle">Here's what you pulled</p>
-          <span class="summary-pack-label hidden" id="summary-pack-label"></span>
-          <p class="summary-near-miss hidden" id="summary-near-miss"></p>
-          <p class="summary-session-best hidden" id="summary-session-best"></p>
-        </div>
-        <div class="summary-grid" id="summary-grid">
-          <!-- Summary cards injected here -->
-        </div>
-        <div class="summary-actions">
-          <button class="btn btn--primary btn--lg" id="open-another-btn">Open Another Pack</button>
-          <button class="btn btn--ghost btn--lg" id="see-collection-btn">View Collection</button>
-        </div>
+      <div class="card-stage" id="card-stage"></div>
+      <div class="reveal-actions">
+        <button class="btn btn-primary btn-lg" id="next-card-btn">
+          <span id="next-card-label">Next Card</span>
+          <span class="btn-arrow">→</span>
+        </button>
       </div>
+    </div>
 
+    <!-- Phase 3: Pack summary -->
+    <div class="phase phase-summary hidden" id="phase-summary">
+      <h2 class="summary-title">Pack Complete!</h2>
+      <p class="summary-subtitle" id="summary-subtitle">Here's what you pulled</p>
+      <div class="summary-grid" id="summary-grid"></div>
+      <div class="summary-actions">
+        <button class="btn btn-primary btn-lg" id="open-another-btn">Open Another Pack</button>
+        <button class="btn btn-ghost btn-lg" id="see-collection-btn">View Collection</button>
+      </div>
     </div>
   </section>
 
 
-  <!-- ═══════════════════════════════════════════
+  <!-- ══════════════════════════════════════
        COLLECTION
-  ═══════════════════════════════════════════ -->
-  <section id="collection" class="collection hidden" aria-label="My Collection">
-    <div class="collection__inner">
-      <div class="collection__header">
+  ══════════════════════════════════════ -->
+  <section id="collection" class="screen collection">
+    <div class="collection-inner">
+      <div class="collection-header">
         <div>
-          <h2 class="collection__title">My Collection</h2>
-          <p class="collection__subtitle" id="collection-subtitle">0 cards pulled</p>
-          <p class="collection__rarity-counts" id="collection-rarity-counts"></p>
+          <h2 class="collection-title">My Collection</h2>
+          <p class="collection-subtitle" id="collection-subtitle">0 cards</p>
         </div>
-        <button class="btn btn--ghost btn--sm" id="close-collection-btn" aria-label="Back to home">← Back</button>
+        <button class="btn btn-ghost btn-sm" id="close-collection-btn">← Back</button>
       </div>
 
-      <div class="collection__filters" id="collection-filters">
-        <button class="filter-btn active" data-rarity="all">All</button>
-        <button class="filter-btn" data-rarity="legendary">Legendary</button>
-        <button class="filter-btn" data-rarity="epic">Epic</button>
-        <button class="filter-btn" data-rarity="rare">Rare</button>
-        <button class="filter-btn" data-rarity="common">Common</button>
+      <div class="collection-toolbar">
+        <div class="filter-group" id="rarity-filters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="legendary">★ Legendary</button>
+          <button class="filter-btn" data-filter="epic">Epic</button>
+          <button class="filter-btn" data-filter="rare">Rare</button>
+          <button class="filter-btn" data-filter="common">Common</button>
+        </div>
+        <div class="sort-group">
+          <select class="sort-select" id="sort-select">
+            <option value="newest">Newest First</option>
+            <option value="rarity">By Rarity</option>
+            <option value="team">By Team</option>
+            <option value="name">By Name</option>
+          </select>
+        </div>
       </div>
 
-      <div class="collection__grid" id="collection-grid">
-        <!-- Collection cards injected here -->
-      </div>
+      <div class="collection-grid" id="collection-grid"></div>
 
-      <div class="collection__empty hidden" id="collection-empty">
-        <p class="collection__empty-icon">⚾</p>
-        <p class="collection__empty-text">No cards yet. Open a pack to get started!</p>
-        <button class="btn btn--primary btn--lg" id="empty-open-pack-btn">Open First Pack</button>
+      <div class="collection-empty hidden" id="collection-empty">
+        <p class="empty-icon">⚾</p>
+        <p class="empty-text">No cards yet — open a pack to start!</p>
+        <button class="btn btn-primary btn-lg" id="empty-open-btn">Open First Pack</button>
       </div>
     </div>
   </section>
 
 
-  <!-- ═══════════════════════════════════════════
-       LOADING OVERLAY
-  ═══════════════════════════════════════════ -->
-  <div class="loading-overlay hidden" id="loading-overlay" role="status" aria-label="Loading players">
+  <!-- ══════════════════════════════════════
+       PACK STATS
+  ══════════════════════════════════════ -->
+  <section id="pack-stats" class="screen pack-stats">
+    <div class="stats-inner">
+      <div class="stats-header">
+        <h2 class="stats-title">Pack Stats</h2>
+        <button class="btn btn-ghost btn-sm" id="close-stats-btn">← Back</button>
+      </div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-value" id="stat-packs-opened">0</div>
+          <div class="stat-card-label">Packs Opened</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value" id="stat-total-cards">0</div>
+          <div class="stat-card-label">Total Cards</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value" id="stat-legendaries">0</div>
+          <div class="stat-card-label">Legendaries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value" id="stat-unique">0</div>
+          <div class="stat-card-label">Unique Players</div>
+        </div>
+      </div>
+      <div class="stats-breakdown" id="stats-breakdown">
+        <h3>Rarity Breakdown</h3>
+        <div class="rarity-bar-chart" id="rarity-chart"></div>
+      </div>
+      <div class="stats-best" id="stats-best"></div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       CARD DETAIL MODAL
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="card-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">✕</button>
+      <div class="modal-card-area" id="modal-card-area"></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       LOADING + TOAST
+  ══════════════════════════════════════ -->
+  <div class="loading-overlay hidden" id="loading-overlay">
     <div class="loading-spinner"></div>
     <p class="loading-text">Loading player data…</p>
   </div>
 
-
-  <!-- ═══════════════════════════════════════════
-       TOAST NOTIFICATION
-  ═══════════════════════════════════════════ -->
-  <div class="toast hidden" id="toast" role="alert" aria-live="assertive"></div>
-
-
-  <!-- ═══════════════════════════════════════════
-       ONBOARDING TOOLTIP
-       Single reusable node — positioned by JS.
-       Hidden by default; shown only for new users.
-  ═══════════════════════════════════════════ -->
-  <div class="ob-tooltip hidden" id="ob-tooltip" role="tooltip" aria-live="polite">
-    <div class="ob-tooltip__arrow" id="ob-arrow"></div>
-    <p class="ob-tooltip__text" id="ob-text"></p>
-    <div class="ob-tooltip__actions">
-      <button class="ob-btn ob-btn--skip" id="ob-skip">Skip</button>
-      <button class="ob-btn ob-btn--next" id="ob-next">Got it</button>
-    </div>
-  </div>
-
+  <div class="toast hidden" id="toast"></div>
 
   <script src="script.js"></script>
 </body>
