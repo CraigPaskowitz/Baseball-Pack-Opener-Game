@@ -995,14 +995,16 @@ function initCardTicker() {
 
   const players = PLAYER_POOL.map(p => `⚾ ${p.name} · ${p.teamAbbr}`);
   // Duplicate for seamless scroll
-  const content = [...players, ...players].map(t => {
+  const inner = document.createElement('div');
+  inner.className = 'ticker-inner';
+  [...players, ...players].forEach(t => {
     const span = document.createElement('span');
     span.className = 'ticker-item';
     span.textContent = t;
-    return span;
+    inner.appendChild(span);
   });
   ticker.innerHTML = '';
-  content.forEach(s => ticker.appendChild(s));
+  ticker.appendChild(inner);
 }
 
 
