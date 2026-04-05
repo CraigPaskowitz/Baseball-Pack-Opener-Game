@@ -1,210 +1,420 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Diamond Pulls — Baseball Card Pack Break</title>
-  <meta name="description" content="Open digital baseball card packs with real MLB player data. Pull rare, epic, and legendary cards.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Diamond Pulls ⚾</title>
+
+  <!-- Fonts: Bebas Neue (stadium scoreboard display) + Nunito (kid-friendly body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════
-       HERO / LANDING
-  ══════════════════════════════════════ -->
-  <section id="hero" class="screen hero active">
-    <div class="hero-bg">
-      <div class="hero-lights"></div>
-      <div class="hero-diamond"></div>
-    </div>
-    <div class="hero-content">
-      <div class="hero-badge">MLB 2025 SEASON</div>
-      <h1 class="hero-title">
-        <span class="hero-title-top">DIAMOND</span>
-        <span class="hero-title-main">PULLS</span>
-      </h1>
-      <p class="hero-tagline">Open packs. Pull legends. Build your collection.</p>
+<!-- ════════════════════════════════════════
+     STADIUM ATMOSPHERE CANVAS
+════════════════════════════════════════ -->
+<canvas id="stadium-canvas" aria-hidden="true"></canvas>
 
-      <div class="pack-types" id="pack-types">
-        <button class="pack-option selected" data-pack="standard">
-          <div class="pack-option-icon">📦</div>
-          <div class="pack-option-name">Standard</div>
-          <div class="pack-option-desc">5 cards</div>
+<!-- ════════════════════════════════════════
+     SCREEN: HERO
+════════════════════════════════════════ -->
+<section id="screen-hero" class="screen active">
+
+  <!-- Stadium lights top-of-page -->
+  <div class="stadium-lights" aria-hidden="true">
+    <div class="light-beam lb-1"></div>
+    <div class="light-beam lb-2"></div>
+    <div class="light-beam lb-3"></div>
+    <div class="light-beam lb-4"></div>
+  </div>
+
+  <!-- Scoreboard header -->
+  <header class="scoreboard-header">
+    <div class="scoreboard-inner">
+      <div class="score-segment">
+        <span class="score-label">SEASON</span>
+        <span class="score-val">2025</span>
+      </div>
+      <div class="scoreboard-logo">
+        <svg class="logo-svg" viewBox="0 0 220 48" fill="none" aria-label="Diamond Pulls">
+          <!-- Baseball diamond gem -->
+          <polygon points="22,4 38,22 22,40 6,22" stroke="currentColor" stroke-width="2" fill="none"/>
+          <polygon points="22,10 32,22 22,34 12,22" fill="currentColor" opacity="0.3"/>
+          <line x1="6" y1="22" x2="38" y2="22" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+          <line x1="22" y1="4" x2="22" y2="40" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+          <!-- Text -->
+          <text x="48" y="32" font-family="'Bebas Neue', sans-serif" font-size="30" fill="currentColor" letter-spacing="2">DIAMOND</text>
+          <text x="48" y="46" font-family="'Bebas Neue', sans-serif" font-size="14" fill="currentColor" opacity="0.6" letter-spacing="6">PULLS</text>
+        </svg>
+      </div>
+      <div class="score-segment">
+        <span class="score-label">CARDS</span>
+        <span class="score-val" id="hdr-card-count">0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero content -->
+  <div class="hero-stage">
+    <!-- Left field grass -->
+    <div class="grass-overlay" aria-hidden="true"></div>
+
+    <div class="hero-center">
+      <p class="hero-eyebrow">⚾ Open Packs · Pull Legends · Own the Diamond</p>
+
+      <h1 class="hero-headline">
+        <span class="hl-line hl-1">RIP</span>
+        <span class="hl-line hl-2">A PACK</span>
+      </h1>
+
+      <p class="hero-sub">Real MLB players. Real 2024 stats. Build your dream collection.</p>
+
+      <!-- Pack chooser -->
+      <div class="pack-chooser" id="pack-chooser" role="radiogroup" aria-label="Choose pack type">
+        <button class="pack-tile selected" data-pack="standard" role="radio" aria-checked="true">
+          <div class="pack-tile-art pack-art-standard">
+            <div class="pack-wrapper">
+              <div class="pack-3d">
+                <div class="pack-face pack-front">
+                  <span class="pack-emoji">📦</span>
+                  <span class="pack-face-name">STANDARD</span>
+                </div>
+                <div class="pack-face pack-back"></div>
+                <div class="pack-face pack-side"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pack-tile-info">
+            <div class="pack-tile-name">Standard</div>
+            <div class="pack-tile-cards">5 cards</div>
+            <div class="pack-tile-guarantee">Guaranteed Rare+</div>
+          </div>
         </button>
-        <button class="pack-option" data-pack="premium">
-          <div class="pack-option-icon">💎</div>
-          <div class="pack-option-name">Premium</div>
-          <div class="pack-option-desc">5 cards · better odds</div>
+
+        <button class="pack-tile" data-pack="premium" role="radio" aria-checked="false">
+          <div class="pack-tile-art pack-art-premium">
+            <div class="pack-wrapper">
+              <div class="pack-3d">
+                <div class="pack-face pack-front">
+                  <span class="pack-emoji">💎</span>
+                  <span class="pack-face-name">PREMIUM</span>
+                </div>
+                <div class="pack-face pack-back"></div>
+                <div class="pack-face pack-side"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pack-tile-info">
+            <div class="pack-tile-name">Premium</div>
+            <div class="pack-tile-cards">5 cards</div>
+            <div class="pack-tile-guarantee">2× Guaranteed Epic+</div>
+          </div>
         </button>
-        <button class="pack-option" data-pack="legendary">
-          <div class="pack-option-icon">🏆</div>
-          <div class="pack-option-name">Legendary</div>
-          <div class="pack-option-desc">3 cards · elite only</div>
+
+        <button class="pack-tile" data-pack="legendary" role="radio" aria-checked="false">
+          <div class="pack-tile-art pack-art-legendary">
+            <div class="pack-wrapper">
+              <div class="pack-3d">
+                <div class="pack-face pack-front">
+                  <span class="pack-emoji">🏆</span>
+                  <span class="pack-face-name">LEGENDARY</span>
+                </div>
+                <div class="pack-face pack-back"></div>
+                <div class="pack-face pack-side"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pack-tile-info">
+            <div class="pack-tile-name">Legendary</div>
+            <div class="pack-tile-cards">3 elite cards</div>
+            <div class="pack-tile-guarantee">★ Guaranteed Legend</div>
+          </div>
         </button>
       </div>
 
-      <button class="btn btn-primary btn-xl" id="open-pack-btn">
-        <span class="btn-text">Rip Pack</span>
-        <span class="btn-sparkle">✦</span>
+      <button class="rip-btn" id="rip-btn">
+        <span class="rip-btn-text">RIP IT!</span>
+        <svg class="rip-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
       </button>
 
-      <div class="hero-nav">
-        <button class="btn btn-ghost" id="view-collection-btn">
-          My Collection <span class="badge hidden" id="collection-count"></span>
+      <div class="hero-nav-row">
+        <button class="ghost-btn" id="btn-collection">
+          🃏 My Collection
+          <span class="nav-badge hidden" id="nav-badge"></span>
         </button>
-        <button class="btn btn-ghost" id="view-stats-btn">
-          Pack Stats
-        </button>
+        <button class="ghost-btn" id="btn-stats">📊 Pack Stats</button>
       </div>
     </div>
-  </section>
+  </div>
+
+  <!-- Scroll of floating mini cards as decoration -->
+  <div class="card-ticker" aria-hidden="true" id="card-ticker"></div>
+</section>
 
 
-  <!-- ══════════════════════════════════════
-       PACK OPENING
-  ══════════════════════════════════════ -->
-  <section id="pack-opening" class="screen pack-opening">
+<!-- ════════════════════════════════════════
+     SCREEN: PACK OPENING
+════════════════════════════════════════ -->
+<section id="screen-opening" class="screen">
 
-    <!-- Phase 1: Sealed pack -->
-    <div class="phase phase-sealed" id="phase-sealed">
-      <div class="sealed-pack" id="sealed-pack">
-        <div class="sealed-pack-shine"></div>
-        <div class="sealed-pack-label">
-          <span class="sealed-pack-type" id="sealed-pack-type">STANDARD</span>
-          <span class="sealed-pack-series">2025 SERIES</span>
+  <!-- Phase A: The pack sits there waiting -->
+  <div class="open-phase" id="phase-pack" data-active="true">
+    <p class="phase-eyebrow" id="pack-type-label">STANDARD PACK</p>
+    <div class="mega-pack" id="mega-pack" tabindex="0" role="button" aria-label="Tap to open pack">
+      <div class="mega-pack-body">
+        <div class="mega-foil"></div>
+        <div class="mega-shine"></div>
+        <div class="mega-pack-logo">⚾</div>
+        <div class="mega-pack-name" id="mega-pack-name">STANDARD</div>
+        <div class="mega-pack-year">2025 · MLB</div>
+        <div class="mega-notch-top"></div>
+        <div class="mega-stripe"></div>
+      </div>
+    </div>
+    <p class="tap-instruction">
+      <span class="tap-pulse">▼</span> Tap the pack to rip it open!
+    </p>
+  </div>
+
+  <!-- Phase B: Card-by-card reveal -->
+  <div class="open-phase hidden" id="phase-reveal">
+    <div class="reveal-progress">
+      <span class="reveal-counter" id="reveal-counter">Card 1 of 5</span>
+      <div class="reveal-pip-row" id="reveal-pips"></div>
+    </div>
+
+    <!-- 3D card flip container -->
+    <div class="flip-scene" id="flip-scene">
+      <div class="flip-card" id="flip-card">
+        <div class="flip-face flip-back" id="flip-back">
+          <div class="card-back-design">
+            <div class="card-back-pattern"></div>
+            <div class="card-back-logo">⚾</div>
+            <div class="card-back-text">DIAMOND PULLS · 2025</div>
+          </div>
         </div>
-        <div class="sealed-pack-stripe"></div>
-      </div>
-      <p class="tear-hint">Tap to rip open</p>
-    </div>
-
-    <!-- Phase 2: Card reveal -->
-    <div class="phase phase-reveal hidden" id="phase-reveal">
-      <div class="reveal-header">
-        <span class="reveal-counter" id="reveal-counter">Card 1 of 5</span>
-        <div class="reveal-pips" id="reveal-pips"></div>
-      </div>
-      <div class="card-stage" id="card-stage"></div>
-      <div class="reveal-actions">
-        <button class="btn btn-primary btn-lg" id="next-card-btn">
-          <span id="next-card-label">Next Card</span>
-          <span class="btn-arrow">→</span>
-        </button>
+        <div class="flip-face flip-front" id="flip-front">
+          <!-- Card content injected here -->
+        </div>
       </div>
     </div>
 
-    <!-- Phase 3: Pack summary -->
-    <div class="phase phase-summary hidden" id="phase-summary">
-      <h2 class="summary-title">Pack Complete!</h2>
-      <p class="summary-subtitle" id="summary-subtitle">Here's what you pulled</p>
-      <div class="summary-grid" id="summary-grid"></div>
+    <div class="reveal-cta-row">
+      <button class="rip-btn reveal-next-btn" id="reveal-next-btn">
+        <span id="reveal-next-label">Next Card →</span>
+      </button>
+      <p class="swipe-hint">or swipe left</p>
+    </div>
+  </div>
+
+  <!-- Phase C: Pack summary -->
+  <div class="open-phase hidden" id="phase-summary">
+    <div class="summary-inner">
+      <h2 class="summary-headline" id="summary-headline">🎉 Pack Complete!</h2>
+      <p class="summary-sub" id="summary-sub">Here's what you pulled</p>
+      <div class="summary-cards" id="summary-cards"></div>
       <div class="summary-actions">
-        <button class="btn btn-primary btn-lg" id="open-another-btn">Open Another Pack</button>
-        <button class="btn btn-ghost btn-lg" id="see-collection-btn">View Collection</button>
+        <button class="rip-btn" id="btn-open-another">Open Another Pack</button>
+        <button class="ghost-btn" id="btn-goto-collection">View My Collection →</button>
       </div>
-    </div>
-  </section>
-
-
-  <!-- ══════════════════════════════════════
-       COLLECTION
-  ══════════════════════════════════════ -->
-  <section id="collection" class="screen collection">
-    <div class="collection-inner">
-      <div class="collection-header">
-        <div>
-          <h2 class="collection-title">My Collection</h2>
-          <p class="collection-subtitle" id="collection-subtitle">0 cards</p>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="close-collection-btn">← Back</button>
-      </div>
-
-      <div class="collection-toolbar">
-        <div class="filter-group" id="rarity-filters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="legendary">★ Legendary</button>
-          <button class="filter-btn" data-filter="epic">Epic</button>
-          <button class="filter-btn" data-filter="rare">Rare</button>
-          <button class="filter-btn" data-filter="common">Common</button>
-        </div>
-        <div class="sort-group">
-          <select class="sort-select" id="sort-select">
-            <option value="newest">Newest First</option>
-            <option value="rarity">By Rarity</option>
-            <option value="team">By Team</option>
-            <option value="name">By Name</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="collection-grid" id="collection-grid"></div>
-
-      <div class="collection-empty hidden" id="collection-empty">
-        <p class="empty-icon">⚾</p>
-        <p class="empty-text">No cards yet — open a pack to start!</p>
-        <button class="btn btn-primary btn-lg" id="empty-open-btn">Open First Pack</button>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- ══════════════════════════════════════
-       PACK STATS
-  ══════════════════════════════════════ -->
-  <section id="pack-stats" class="screen pack-stats">
-    <div class="stats-inner">
-      <div class="stats-header">
-        <h2 class="stats-title">Pack Stats</h2>
-        <button class="btn btn-ghost btn-sm" id="close-stats-btn">← Back</button>
-      </div>
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-card-value" id="stat-packs-opened">0</div>
-          <div class="stat-card-label">Packs Opened</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-value" id="stat-total-cards">0</div>
-          <div class="stat-card-label">Total Cards</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-value" id="stat-legendaries">0</div>
-          <div class="stat-card-label">Legendaries</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-value" id="stat-unique">0</div>
-          <div class="stat-card-label">Unique Players</div>
-        </div>
-      </div>
-      <div class="stats-breakdown" id="stats-breakdown">
-        <h3>Rarity Breakdown</h3>
-        <div class="rarity-bar-chart" id="rarity-chart"></div>
-      </div>
-      <div class="stats-best" id="stats-best"></div>
-    </div>
-  </section>
-
-
-  <!-- ══════════════════════════════════════
-       CARD DETAIL MODAL
-  ══════════════════════════════════════ -->
-  <div class="modal-overlay hidden" id="card-modal">
-    <div class="modal-content">
-      <button class="modal-close" id="modal-close">✕</button>
-      <div class="modal-card-area" id="modal-card-area"></div>
     </div>
   </div>
+</section>
 
 
-  <!-- ══════════════════════════════════════
-       LOADING + TOAST
-  ══════════════════════════════════════ -->
-  <div class="loading-overlay hidden" id="loading-overlay">
-    <div class="loading-spinner"></div>
-    <p class="loading-text">Loading player data…</p>
+<!-- ════════════════════════════════════════
+     SCREEN: COLLECTION
+════════════════════════════════════════ -->
+<section id="screen-collection" class="screen">
+  <div class="inner-page">
+    <div class="inner-header">
+      <div>
+        <h2 class="inner-title">🃏 My Collection</h2>
+        <p class="inner-sub" id="coll-sub">0 cards</p>
+      </div>
+      <button class="back-btn" id="btn-coll-back">← Back</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-pills" id="filter-pills" role="group" aria-label="Filter by rarity">
+        <button class="pill active" data-filter="all">All</button>
+        <button class="pill pill-legendary" data-filter="legendary">★ Legend</button>
+        <button class="pill pill-epic" data-filter="epic">✦ Epic</button>
+        <button class="pill pill-rare" data-filter="rare">Rare</button>
+        <button class="pill pill-common" data-filter="common">Common</button>
+      </div>
+      <select class="sort-select" id="sort-select" aria-label="Sort cards">
+        <option value="newest">Newest First</option>
+        <option value="rarity">By Rarity</option>
+        <option value="team">By Team</option>
+        <option value="name">By Name</option>
+      </select>
+    </div>
+
+    <div class="card-grid" id="coll-grid"></div>
+    <div class="empty-state hidden" id="coll-empty">
+      <div class="empty-icon">⚾</div>
+      <p class="empty-msg">No cards yet — open a pack to start!</p>
+      <button class="rip-btn" id="btn-empty-open">Open Your First Pack!</button>
+    </div>
   </div>
+</section>
 
-  <div class="toast hidden" id="toast"></div>
 
-  <script src="script.js"></script>
-</body>
+<!-- ════════════════════════════════════════
+     SCREEN: STATS
+════════════════════════════════════════ -->
+<section id="screen-stats" class="screen">
+  <div class="inner-page">
+    <div class="inner-header">
+      <div>
+        <h2 class="inner-title">📊 Pack Stats</h2>
+        <p class="inner-sub">Your pull history</p>
+      </div>
+      <button class="back-btn" id="btn-stats-back">← Back</button>
+    </div>
+
+    <div class="stats-kpis">
+      <div class="kpi-card">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-val" id="kpi-packs">0</div>
+        <div class="kpi-label">Packs Opened</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🃏</div>
+        <div class="kpi-val" id="kpi-cards">0</div>
+        <div class="kpi-label">Total Cards</div>
+      </div>
+      <div class="kpi-card kpi-gold">
+        <div class="kpi-icon">★</div>
+        <div class="kpi-val" id="kpi-legends">0</div>
+        <div class="kpi-label">Legendaries</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🏟️</div>
+        <div class="kpi-val" id="kpi-unique">0</div>
+        <div class="kpi-label">Unique Players</div>
+      </div>
+    </div>
+
+    <div class="stats-section">
+      <h3 class="stats-section-title">Rarity Breakdown</h3>
+      <div class="rarity-bars" id="rarity-bars"></div>
+    </div>
+
+    <div class="stats-section" id="best-pulls-section">
+      <h3 class="stats-section-title">⭐ Best Pulls</h3>
+      <div class="best-grid" id="best-grid"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════
+     CARD DETAIL MODAL
+════════════════════════════════════════ -->
+<div class="modal-backdrop hidden" id="card-modal" role="dialog" aria-modal="true" aria-label="Card detail">
+  <div class="modal-box">
+    <button class="modal-close-btn" id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-card-slot"></div>
+    <p class="modal-tap-hint">Tap outside to close</p>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     RARITY REVEAL OVERLAY
+════════════════════════════════════════ -->
+<div class="reveal-overlay hidden" id="reveal-overlay" aria-hidden="true">
+  <div class="reveal-overlay-text" id="overlay-text"></div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     LOADING
+════════════════════════════════════════ -->
+<div class="loading-veil hidden" id="loading-veil">
+  <div class="loading-ball">⚾</div>
+  <p class="loading-msg">Loading player data…</p>
+  <p class="loading-sub">Fetching live MLB stats</p>
+</div>
+
+
+<!-- Toast -->
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+<script src="game.js"></script>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
 </html>
