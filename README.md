@@ -2,16 +2,17 @@
 
 **Open packs. Pull legends. Own the diamond.**
 
-[🚀 Live Demo](#) <!-- TODO: Add GitHub Pages link -->
+Live demo: https://craigpaskowitz.github.io/Baseball-Pack-Opener-Game/
 
 ---
 
 ## 🎬 Preview
 
-![App Screenshot](./assets/screenshot.png) <!-- TODO: Replace with real screenshot -->
+![Pack Open Demo](./Solar_System_Demo.GIF)
 
-![Pack Opening GIF](./assets/pack-opening.gif) <!-- TODO: Add pack opening GIF -->
-![Card Reveal GIF](./assets/card-reveal.gif) <!-- TODO: Add card reveal GIF -->
+![Pack Collection](./Screenshot_ISS.jpg)
+
+![Pack homescreen](./Screenshot_crew.jpg)
 
 ---
 
