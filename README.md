@@ -8,11 +8,11 @@ Live demo: https://craigpaskowitz.github.io/Baseball-Pack-Opener-Game/
 
 ## 🎬 Preview
 
-![Pack Open Demo](./Solar_System_Demo.GIF)
+![Pack homescreen](./Card_Home.jpg)
 
-![Pack Collection](./Screenshot_ISS.jpg)
+![Pack Open Demo](./Card_Open.GIF)
 
-![Pack homescreen](./Screenshot_crew.jpg)
+![Pack Collection](./Card_Collection.GIF)
 
 ---
 
